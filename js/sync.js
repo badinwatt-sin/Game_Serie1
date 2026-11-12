@@ -44,3 +44,21 @@ export function teamTotals(players, teamCount) {
   for (const x of t) x.avg = x.members ? x.total / x.members : 0;
   return t;
 }
+
+// ---------- โพล / แบบสำรวจ ----------
+const rest = async (path, opts = {}) => {
+  if (!enabled) return { ok: false, data: null };
+  try {
+    const res = await fetch(`${base}/rest/v1/${path}`, { ...opts, headers: { ...headers, ...opts.headers } });
+    return { ok: res.ok, data: res.ok && opts.method === undefined ? await res.json() : null };
+  } catch { return { ok: false, data: null }; }
+};
+const upsert = { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' } };
+const q = encodeURIComponent;
+
+export const listPolls = room => rest(`gs_polls?room=eq.${q(room)}&select=id,q,type,options,open&order=created_at.asc`);
+export const listVotes = room => rest(`gs_votes?room=eq.${q(room)}&select=poll_id,pid,answer&limit=20000`);
+export const savePoll = poll => rest('gs_polls?on_conflict=id', { ...upsert, body: JSON.stringify(poll) });
+export const setPollOpen = (id, open) => rest(`gs_polls?id=eq.${q(id)}`, { method: 'PATCH', body: JSON.stringify({ open }) });
+export const deletePoll = id => rest(`gs_polls?id=eq.${q(id)}`, { method: 'DELETE' });
+export const vote = (room, poll_id, answer) => rest('gs_votes?on_conflict=poll_id,pid', { ...upsert, body: JSON.stringify({ room, poll_id, pid: state.pid, answer: String(answer).slice(0, 80) }) });

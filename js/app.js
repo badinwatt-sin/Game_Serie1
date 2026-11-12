@@ -1,7 +1,9 @@
 import { $, $$, esc, fmt, clamp, state, save, sfx, toast, floatText, confetti, countUp, TEAMS, AVATARS,
-  makeRoomCode, parseRoomCode, myScores, myTotal, pick } from './core.js';
+  makeRoomCode, parseRoomCode, myScores, myTotal, pick, reducedMotion } from './core.js';
 import { GAMES } from './games.js';
 import * as sync from './sync.js';
+import { I } from './icons.js';
+import { mountPlayerPolls, mountHostPolls, POLL_POINTS } from './polls.js';
 
 const app = $('#app');
 let leave = null; // ฟังก์ชันเก็บกวาดของหน้าปัจจุบัน (หยุด timer / polling)
@@ -12,9 +14,17 @@ const teamOf = i => TEAMS[i] || null;
 const teamChip = i => { const t = teamOf(i); return t ? `<span class="chip" style="--c:${t.c}">${t.e} ทีม${t.n}</span>` : ''; };
 
 // ---------- router ----------
-const routes = { '': home, board, room, host, me, play };
+const routes = { '': home, board, room, host, me, play, poll };
 function render() {
+  // เปลี่ยนหน้าแบบ cross-fade ถ้าเบราว์เซอร์รองรับ
+  if (!document.startViewTransition || reducedMotion()) return draw();
+  const vt = document.startViewTransition(draw);
+  // ถ้าเปลี่ยนหน้าซ้อนกัน transition เก่าจะถูกข้าม — ไม่ใช่ข้อผิดพลาด
+  for (const k of ['ready', 'finished', 'updateCallbackDone']) vt[k]?.catch(() => {});
+}
+function draw() {
   leave?.(); leave = null;
+  document.body.style.removeProperty('--bg');
   const [name = '', arg] = location.hash.replace(/^#\/?/, '').split('/');
   const view = routes[name] || home;
   if (!state.player && view !== host) return me(true);
@@ -26,22 +36,22 @@ const go = hash => { if (location.hash === hash) render(); else location.hash = 
 addEventListener('hashchange', render);
 
 const nav = cur => `<nav class="tabbar" aria-label="เมนูหลัก">${[
-  ['', '🎮', 'เกม'], ['board', '🏆', 'คะแนน'], ['room', '👥', 'ห้อง'], ['host', '🎤', 'ผู้จัด']
-].map(([h, i, t]) => `<a href="#/${h}" ${cur === h ? 'aria-current="page"' : ''}><span aria-hidden="true">${i}</span>${t}</a>`).join('')}</nav>`;
+  ['', I.games, 'เกม'], ['poll', I.poll, 'โพล'], ['board', I.board, 'คะแนน'], ['room', I.room, 'ห้อง'], ['host', I.host, 'ผู้จัด']
+].map(([h, i, t]) => `<a href="#/${h}" ${cur === h ? 'aria-current="page"' : ''}>${i}<span>${t}</span></a>`).join('')}</nav>`;
 
 // ---------- โปรไฟล์ ----------
 function me(first) {
   const p = state.player || { name: '', avatar: pick(AVATARS) };
   let avatar = p.avatar;
   app.innerHTML = `<section class="screen center">
-    <div class="logo"><span>GAME</span><b>SERIE&nbsp;1</b><small>10 เกมสะสมแต้ม · เล่นเดี่ยวหรือทีม</small></div>
+    <div class="logo"><span>GAME</span><b>SERIE<i>1</i></b><small>10 เกมสะสมแต้ม · เล่นเดี่ยวหรือทีม</small></div>
     <form class="card stack" id="f">
       <label class="lbl" for="nm">ชื่อเล่นของคุณ</label>
       <input id="nm" class="inp" maxlength="16" autocomplete="nickname" placeholder="เช่น ต้น, มิ้นท์" value="${esc(p.name)}" required>
       <span class="lbl" id="avl">เลือกตัวละคร</span>
       <div class="avatars" role="radiogroup" aria-labelledby="avl">${AVATARS.map(a =>
         `<button type="button" role="radio" aria-checked="${a === avatar}" class="av">${a}</button>`).join('')}</div>
-      <button class="btn primary">${first === true ? 'เริ่มเล่นเลย 🚀' : 'บันทึก'}</button>
+      <button class="btn primary">${first === true ? 'เริ่มเล่นเลย' : 'บันทึก'}</button>
     </form>
     ${first === true ? `<a class="link" href="#/host">ฉันเป็นผู้จัดกิจกรรม →</a>` : ''}
   </section>`;
@@ -62,23 +72,23 @@ function home() {
     <header class="hero">
       <a class="me" href="#/me" aria-label="แก้ไขโปรไฟล์"><span class="ava">${p.avatar}</span>
         <span><b>${esc(p.name)}</b><small>${state.room ? `ห้อง ${state.room.code}` : 'โหมดเล่นเดี่ยว'} ${state.room ? teamChip(p.team) : ''}</small></span></a>
-      <button class="icon-btn" id="snd" aria-label="เปิด/ปิดเสียง">${state.sound ? '🔊' : '🔇'}</button>
+      <button class="icon-btn" id="snd" aria-label="เปิด/ปิดเสียง">${state.sound ? I.host : I.mute}</button>
     </header>
-    <div class="total card glow">
+    <div class="total">
       <div><small>คะแนนสะสม</small><b id="tot">0</b></div>
       <div class="prog"><small>เล่นแล้ว ${played}/10 เกม</small><div class="bar"><i style="width:${played * 10}%"></i></div></div>
     </div>
     <h2 class="h">เลือกเกม</h2>
     <div class="games">${GAMES.map((g, i) => {
       const best = sc[g.id]?.best || 0;
-      return `<a class="game" href="#/play/${g.id}" style="--a:${g.grad[0]};--b:${g.grad[1]};--i:${i}">
-        <span class="g-ico" aria-hidden="true">${g.icon}</span><span class="g-tag">${g.skill}</span>
+      return `<a class="game" href="#/play/${g.id}" style="--a:${g.grad[0]};--i:${i}">
+        <span class="g-ico">${g.icon}</span><span class="g-tag">${g.skill}</span>
         <b>${g.name}</b><small>${g.desc}</small>
         <span class="g-best">${best ? `<span class="stars">${starStr(starsOf(g, best))}</span> ${fmt(best)}` : 'ยังไม่เคยเล่น'}</span></a>`;
     }).join('')}</div>
   </section>${nav('')}`;
   countUp($('#tot'), myTotal(), 700);
-  $('#snd').onclick = e => { state.sound = !state.sound; save(); e.currentTarget.textContent = state.sound ? '🔊' : '🔇'; sfx.tap(); };
+  $('#snd').onclick = e => { state.sound = !state.sound; save(); e.currentTarget.innerHTML = state.sound ? I.host : I.mute; sfx.tap(); };
 }
 
 // ---------- shell สำหรับเล่นเกม ----------
@@ -90,10 +100,11 @@ function play(id) {
   const stopAll = () => { alive = false; timeouts.forEach(clearTimeout); intervals.forEach(clearInterval); clearInterval(tick); };
   leave = stopAll;
 
-  app.innerHTML = `<section class="screen play" style="--a:${g.grad[0]};--b:${g.grad[1]}">
+  document.body.style.setProperty('--bg', g.grad[0]);
+  app.innerHTML = `<section class="screen play" style="--a:${g.grad[0]}">
     <header class="hud">
-      <a class="icon-btn" href="#/" aria-label="ออกจากเกม">✕</a>
-      <div class="hud-t"><b>${g.icon} ${g.name}</b><small id="info"></small></div>
+      <a class="icon-btn" href="#/" aria-label="ออกจากเกม">${I.close}</a>
+      <div class="hud-t"><b>${g.name}</b><small id="info"></small></div>
       <div class="hud-s"><small>คะแนน</small><b id="sc">0</b></div>
     </header>
     <div class="tbar" role="timer" aria-label="เวลา"><i id="tb"></i></div>
@@ -136,7 +147,7 @@ function play(id) {
 
   const best = myScores()[g.id]?.best || 0;
   stage.innerHTML = `<div class="intro card pop">
-    <div class="intro-ico" aria-hidden="true">${g.icon}</div><h1>${g.name}</h1><p>${g.how}</p>
+    <div class="intro-ico">${g.icon}</div><h1>${g.name}</h1><p>${g.how}</p>
     <div class="goal">${g.stars.map((s, i) => `<span><span class="stars">${'★'.repeat(i + 1)}</span>${fmt(s)}+</span>`).join('')}</div>
     ${best ? `<small>สถิติของคุณ: ${fmt(best)}</small>` : ''}
     <button class="btn primary" id="go">เริ่มเลย!</button></div>`;
@@ -157,15 +168,15 @@ function play(id) {
       <small>${st === 3 ? 'สุดยอด!' : st === 2 ? 'เก่งมาก!' : st === 1 ? 'ดีเลย!' : 'ลองอีกครั้งนะ'}</small>
       <div class="r-stars" aria-label="${st} ดาว">${[0, 1, 2].map(i => `<span class="${i < st ? 'on' : ''}" style="--d:${i}">★</span>`).join('')}</div>
       <b class="r-score" id="rs">0</b>
-      ${isBest ? `<span class="badge">🎉 สถิติใหม่!</span>` : `<small>สถิติของคุณ ${fmt(s.best)}</small>`}
-      <p class="r-total">คะแนนสะสมรวม <b>${fmt(myTotal())}</b>${t ? ` · ช่วยทีม${t.n} ${t.e}` : ''}</p>
+      ${isBest ? `<span class="badge">สถิติใหม่!</span>` : `<small>สถิติของคุณ ${fmt(s.best)}</small>`}
+      <p class="r-total">คะแนนสะสมรวม <b>${fmt(myTotal())}</b>${t ? ` · ให้ทีม${t.n} ${t.e}` : ''}</p>
       <div class="stack">
-        <a class="btn primary" href="#/play/${nextG.id}">เกมถัดไป: ${nextG.icon} ${nextG.name}</a>
-        <button class="btn ghost" id="again">🔁 เล่นอีกครั้ง</button>
+        <a class="btn primary" href="#/play/${nextG.id}">เกมถัดไป: ${nextG.name}</a>
+        <button class="btn ghost" id="again">เล่นอีกครั้ง</button>
         <a class="btn ghost" href="#/">กลับหน้าเกม</a>
       </div></div>`;
     countUp($('#rs'), score);
-    $('#again').onclick = render;
+    $('#again').onclick = () => render();
     if (st >= 2 || isBest) { sfx.win(); confetti(); }
   }
 }
@@ -184,7 +195,7 @@ function room() {
       <div class="card stack center-t">
         <small>${esc(r.name || 'กิจกรรม')}</small><div class="code">${r.code}</div>
         ${r.teams ? `<p>คุณอยู่ ${teamChip(p.team)}</p>${teamPicker(r.teams, p.team)}` : '<p>โหมดเล่นเดี่ยว — แข่งคะแนนรายบุคคล</p>'}
-        <a class="btn primary" href="#/">ไปเล่นเกม 🎮</a>
+        <a class="btn primary" href="#/">ไปเล่นเกม</a>
         <button class="btn danger" id="lv">ออกจากห้อง</button>
       </div></section>${nav('room')}`;
     $$('.team').forEach(b => b.onclick = () => { p.team = +b.dataset.t; save(); sync.pushScores(); sfx.tap(); room(); });
@@ -220,7 +231,7 @@ function room() {
     state.room = { code: v.code, teams: v.teams, name: pr?.code === v.code ? pr.name : '' };
     state.player.team = v.teams ? team : null;
     pendingRoom = null; save(); sync.pushScores();
-    toast('เข้าห้องแล้ว ลุยเลย! 🎉'); go('#/');
+    toast('เข้าห้องแล้ว ลุยเลย!'); go('#/');
   };
 }
 
@@ -271,20 +282,34 @@ function board() {
     stopLive?.(); stopLive = null;
     $$('.seg button').forEach(b => b.setAttribute('aria-selected', b.dataset.t === tab));
     if (tab !== 'mine') { bd.innerHTML = '<p class="hint">กำลังโหลด…</p>'; stopLive = liveBoard(bd, r.code, r.teams, tab); return; }
-    bd.innerHTML = `<div class="total card glow"><div><small>${esc(state.player.name)} ${r ? teamChip(state.player.team) : ''}</small><b>${fmt(myTotal())}</b></div>
+    bd.innerHTML = `<div class="total"><div><small>${esc(state.player.name)} ${r ? teamChip(state.player.team) : ''}</small><b>${fmt(myTotal())}</b></div>
       <span class="ava big">${state.player.avatar}</span></div>
       <ul class="ranks">${GAMES.map(g => {
         const b = sc[g.id]?.best || 0;
-        return `<li class="rank"><span class="pos">${g.icon}</span><span class="who"><span class="grow">${g.name}<small class="stars">${starStr(starsOf(g, b))}</small></span></span><b>${b ? fmt(b) : '–'}</b></li>`;
-      }).join('')}</ul>`;
+        return `<li class="rank" style="--c:${g.grad[0]};--a:#fff"><span class="pos ico">${g.icon}</span><span class="who"><span class="grow">${g.name}<small class="stars">${starStr(starsOf(g, b))}</small></span></span><b>${b ? fmt(b) : '–'}</b></li>`;
+      }).join('')}${sc.poll?.best ? `<li class="rank" style="--c:#17124a;--a:#fff"><span class="pos ico">${I.poll}</span><span class="who"><span class="grow">ร่วมตอบโพล<small>${sc.poll.plays} ข้อ × ${POLL_POINTS} แต้ม</small></span></span><b>${fmt(sc.poll.best)}</b></li>` : ''}</ul>`;
   };
   $$('.seg button').forEach(b => b.onclick = () => { tab = b.dataset.t; show(); });
   show();
   leave = () => stopLive?.();
 }
 
+// ---------- โพล (ฝั่งผู้เล่น) ----------
+function poll() {
+  const why = !state.room ? 'เข้าร่วมห้องก่อน แล้วคำถามจากผู้จัดจะมาแสดงที่นี่'
+    : !sync.enabled ? 'ห้องนี้ยังไม่ได้เปิดระบบโพล (ผู้จัดต้องตั้งค่ากระดานสดก่อน)' : '';
+  app.innerHTML = `<section class="screen">
+    <h1 class="h1">โพล</h1>
+    <p class="sub">ร่วมตอบได้ข้อละ ${POLL_POINTS} แต้ม ไม่มีถูกผิด</p>
+    <div id="pb" class="stack">${why ? `<p class="hint">${why}</p>${state.room ? '' : '<a class="btn primary" href="#/room">เข้าร่วมห้อง</a>'}` : ''}</div>
+  </section>${nav('poll')}`;
+  if (!why) leave = mountPlayerPolls($('#pb'));
+}
+
 // ---------- ผู้จัด ----------
+let hostView = 'score';
 function host() {
+  leave?.(); leave = null;
   const h = state.host;
   if (!h) {
     app.innerHTML = `<section class="screen">
@@ -295,7 +320,7 @@ function host() {
         <label class="lbl" for="sz">จำนวนผู้เข้าร่วมโดยประมาณ: <b id="szv">30</b> คน</label>
         <input id="sz" type="range" min="2" max="300" value="30">
         <span class="lbl" id="ml">รูปแบบการแข่ง</span>
-        <div class="seg" role="radiogroup" aria-labelledby="ml"><button type="button" role="radio" data-m="team" aria-checked="true">👥 ทีม</button><button type="button" role="radio" data-m="solo" aria-checked="false">🧍 เดี่ยว</button></div>
+        <div class="seg" role="radiogroup" aria-labelledby="ml"><button type="button" role="radio" data-m="team" aria-checked="true">ทีม</button><button type="button" role="radio" data-m="solo" aria-checked="false">เดี่ยว</button></div>
         <div id="tc" class="stack">
           <span class="lbl">จำนวนทีม</span>
           <div class="stepper"><button type="button" class="icon-btn" data-d="-1" aria-label="ลดทีม">−</button><b id="tn">6</b><button type="button" class="icon-btn" data-d="1" aria-label="เพิ่มทีม">+</button></div>
@@ -336,18 +361,28 @@ function host() {
       <div class="qr">${qr}</div>
       <small>หรือเปิดเว็บแล้วกรอกรหัสห้อง</small>
       <div class="code">${h.code}</div>
-      <div class="row-btns"><button class="btn ghost sm" id="cp">📋 คัดลอกลิงก์</button><button class="btn ghost sm" id="sh">📤 แชร์</button></div>
+      <div class="row-btns"><button class="btn ghost sm" id="cp">คัดลอกลิงก์</button><button class="btn ghost sm" id="sh">แชร์</button></div>
       <button class="btn primary" id="jn">เข้าห้องนี้ด้วยเครื่องนี้</button>
       <button class="btn danger" id="cl">ปิดห้อง / สร้างใหม่</button>
     </div>
     <div class="host-board">
+      <div class="seg big" role="tablist"><button role="tab" data-v="score" aria-selected="${hostView === 'score'}">คะแนน</button><button role="tab" data-v="poll" aria-selected="${hostView === 'poll'}">โพล / แบบสำรวจ</button></div>
+      <div id="hp" ${hostView === 'poll' ? '' : 'hidden'}></div>
+      <div id="hs" class="stack" ${hostView === 'score' ? '' : 'hidden'}>
       <h2 class="h1">${h.teams ? 'คะแนนทีม' : 'อันดับผู้เล่น'} ${sync.enabled ? '<span class="live">● LIVE</span>' : ''}</h2>
-      ${sync.enabled && h.teams ? `<div class="seg" role="tablist"><button role="tab" data-t="team">รวม</button><button role="tab" data-t="avg">เฉลี่ย/คน</button><button role="tab" data-t="solo">บุคคล</button></div>` : ''}
+      ${sync.enabled && h.teams ? `<div class="seg" id="hseg" role="tablist"><button role="tab" data-t="team">รวม</button><button role="tab" data-t="avg">เฉลี่ย/คน</button><button role="tab" data-t="solo">บุคคล</button></div>` : ''}
       <div id="hb"></div>
       ${h.teams ? `<details class="card bonus" ${sync.enabled ? '' : 'open'}><summary>${sync.enabled ? 'ให้คะแนนโบนัสทีม (กิจกรรมนอกจอ)' : 'จดคะแนนทีม'}</summary><div id="bn"></div></details>` : ''}
       ${sync.enabled ? '' : `<p class="hint">${h.teams ? 'ยังไม่ได้เปิดกระดานสด: ให้แต่ละทีมรวม "คะแนนสะสม" ของสมาชิกแล้วกรอกที่นี่ หรือใช้ให้คะแนนกิจกรรมหน้างาน' : 'ยังไม่ได้เปิดกระดานสด: ให้ผู้เล่นโชว์หน้า "คะแนน" ของตัวเองเพื่อหาผู้ชนะ'} · วิธีเปิดกระดานสดดูที่ docs/SETUP.md</p>`}
+      </div>
     </div>
   </section>${nav('host')}`;
+  let stopPolls = null;
+  if (hostView === 'poll') {
+    if (sync.enabled) stopPolls = mountHostPolls($('#hp'));
+    else $('#hp').innerHTML = `<div class="card stack"><h2>โพลต้องใช้กระดานสด</h2><p>คำตอบของผู้เข้าร่วมต้องส่งมารวมกันที่เซิร์ฟเวอร์กลาง จึงต้องตั้งค่า Supabase ก่อน (ราว 5 นาที) ดูขั้นตอนใน docs/SETUP.md</p></div>`;
+  }
+  $$('[data-v]').forEach(b => b.onclick = () => { hostView = b.dataset.v; host(); });
 
   $('#cp').onclick = async () => { try { await navigator.clipboard.writeText(url); toast('คัดลอกลิงก์แล้ว'); } catch { prompt('คัดลอกลิงก์นี้', url); } };
   $('#sh').onclick = () => navigator.share ? navigator.share({ title: h.name, text: `มาเล่นเกมกัน! รหัสห้อง ${h.code}`, url }).catch(() => {}) : $('#cp').click();
@@ -363,7 +398,7 @@ function host() {
   };
   let stopLive = null, tab = h.teams ? 'team' : 'solo';
   const showLive = () => {
-    stopLive?.(); $$('.host-board .seg button').forEach(b => b.setAttribute('aria-selected', b.dataset.t === tab));
+    stopLive?.(); $$('#hseg button').forEach(b => b.setAttribute('aria-selected', b.dataset.t === tab));
     stopLive = liveBoard(hb, h.code, h.teams, tab);
   };
   const refresh = () => sync.enabled ? showLive() : h.teams ? manual() : (hb.innerHTML = '');
@@ -381,9 +416,9 @@ function host() {
     };
     paint();
   }
-  $$('.host-board .seg button').forEach(b => b.onclick = () => { tab = b.dataset.t; showLive(); });
+  $$('#hseg button').forEach(b => b.onclick = () => { tab = b.dataset.t; showLive(); });
   refresh();
-  leave = () => stopLive?.();
+  leave = () => { stopLive?.(); stopPolls?.(); };
 }
 
 // ---------- เริ่มต้น ----------

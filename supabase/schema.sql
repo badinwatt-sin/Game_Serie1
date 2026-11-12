@@ -19,3 +19,35 @@ create policy "gs insert" on public.gs_scores for insert to anon with check (tru
 create policy "gs update" on public.gs_scores for update to anon using (true) with check (true);
 
 -- ล้างข้อมูลหลังจบงาน:  delete from public.gs_scores where room = 'ABCD4';
+
+-- ---------- โพล / แบบสำรวจ ----------
+create table if not exists public.gs_polls (
+  id text primary key check (char_length(id) <= 40),
+  room text not null check (char_length(room) = 5),
+  q text not null check (char_length(q) between 1 and 200),
+  type text not null check (type in ('choice', 'rating', 'text')),
+  options jsonb not null default '[]',
+  open boolean not null default true,
+  created_at timestamptz not null default now()
+);
+create index if not exists gs_polls_room on public.gs_polls (room);
+
+create table if not exists public.gs_votes (
+  poll_id text not null references public.gs_polls (id) on delete cascade,
+  room text not null check (char_length(room) = 5),
+  pid text not null check (char_length(pid) <= 40),
+  answer text not null check (char_length(answer) between 1 and 80),
+  created_at timestamptz not null default now(),
+  primary key (poll_id, pid)
+);
+create index if not exists gs_votes_room on public.gs_votes (room);
+
+alter table public.gs_polls enable row level security;
+alter table public.gs_votes enable row level security;
+create policy "gs polls read" on public.gs_polls for select to anon using (true);
+create policy "gs polls insert" on public.gs_polls for insert to anon with check (true);
+create policy "gs polls update" on public.gs_polls for update to anon using (true) with check (true);
+create policy "gs polls delete" on public.gs_polls for delete to anon using (true);
+create policy "gs votes read" on public.gs_votes for select to anon using (true);
+create policy "gs votes insert" on public.gs_votes for insert to anon with check (true);
+create policy "gs votes update" on public.gs_votes for update to anon using (true) with check (true);

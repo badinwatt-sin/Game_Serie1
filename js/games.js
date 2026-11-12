@@ -3,9 +3,10 @@
 //                      after(ms, fn), every(ms, fn), end()
 import { $, $$, esc, rand, pick, shuffle, clamp, sfx, graphemes } from './core.js';
 import { QUIZ, WORDS, MEMORY_ICONS } from './data.js';
+import { I } from './icons.js';
 
 const quiz = {
-  id: 'quiz', name: 'ควิซสายฟ้า', icon: '⚡', grad: ['#f59e0b', '#ef4444'], skill: 'ความรู้',
+  id: 'quiz', name: 'ควิซสายฟ้า', icon: I.quiz, grad: ['#ff5a1f'], skill: 'ความรู้',
   desc: 'ตอบถูก ตอบไว ได้แต้มเยอะ', how: '10 คำถาม ข้อละ 12 วินาที ยิ่งตอบเร็วยิ่งได้โบนัส', stars: [400, 650, 850],
   start(api) {
     const qs = shuffle(QUIZ).slice(0, 10);
@@ -16,11 +17,11 @@ const quiz = {
       let locked = false;
       api.info(`ข้อ ${i + 1}/${qs.length}`);
       api.stage.innerHTML = `<div class="q-card pop"><p>${esc(q.q)}</p></div>
-        <div class="opts">${shuffle(q.a).map(o => `<button class="opt">${esc(o)}</button>`).join('')}</div>`;
+        <div class="opts col">${shuffle(q.a).map((o, k) => `<button class="opt"><i>${'ABCD'[k]}</i><span>${esc(o)}</span></button>`).join('')}</div>`;
       const answer = (b, ev) => {
         if (locked) return; locked = true; api.stopTimer();
-        const ok = !!b && b.textContent === q.a[0];
-        $$('.opt', api.stage).forEach(x => { x.disabled = true; if (x.textContent === q.a[0]) x.classList.add('ok'); });
+        const txt = x => x.querySelector('span').textContent, ok = !!b && txt(b) === q.a[0];
+        $$('.opt', api.stage).forEach(x => { x.disabled = true; if (txt(x) === q.a[0]) x.classList.add('ok'); });
         if (ok) api.add(50 + Math.round(clamp(1 - (performance.now() - t0) / 12000, 0, 1) * 50), ev);
         else { b?.classList.add('no'); api.miss(); }
         i++; api.after(ok ? 700 : 1500, next);
@@ -33,7 +34,7 @@ const quiz = {
 };
 
 const memory = {
-  id: 'memory', name: 'จับคู่ความจำ', icon: '🧠', grad: ['#8b5cf6', '#ec4899'], skill: 'ความจำ',
+  id: 'memory', name: 'จับคู่ความจำ', icon: I.memory, grad: ['#e6399b'], skill: 'ความจำ',
   desc: 'เปิดการ์ดหาคู่ให้ครบ', how: 'จับคู่ให้ครบ 8 คู่ใน 60 วินาที เหลือเวลาเท่าไรได้โบนัสเพิ่ม', stars: [400, 800, 950],
   start(api) {
     const cards = shuffle([...shuffle(MEMORY_ICONS).slice(0, 8)].flatMap(x => [x, x]));
@@ -60,7 +61,7 @@ const memory = {
 };
 
 const reaction = {
-  id: 'reaction', name: 'ไวกว่าแสง', icon: '🚦', grad: ['#22c55e', '#06b6d4'], skill: 'ปฏิกิริยา',
+  id: 'reaction', name: 'ไวกว่าแสง', icon: I.reaction, grad: ['#12a65c'], skill: 'ปฏิกิริยา',
   desc: 'แตะทันทีเมื่อจอเป็นสีเขียว', how: '5 รอบ รอให้จอเปลี่ยนเป็นสีเขียวแล้วแตะให้ไวที่สุด แตะก่อน = อดแต้มรอบนั้น', stars: [450, 700, 880],
   start(api) {
     let round = 0, t0 = 0, phase = 'idle', wait;
@@ -79,7 +80,7 @@ const reaction = {
       } else if (phase === 'go') {
         const ms = Math.round(performance.now() - t0); phase = 'idle';
         pad.className = 'react-pad hit'; big.textContent = `${ms} ms`;
-        sub.textContent = ms < 280 ? 'สายฟ้าแลบ! ⚡' : ms < 400 ? 'ไวมาก!' : 'ยังไวได้อีก';
+        sub.textContent = ms < 280 ? 'สายฟ้าแลบ!' : ms < 400 ? 'ไวมาก!' : 'ยังไวได้อีก';
         api.add(Math.round(clamp(200 - (ms - 180) * 0.5, 20, 200)), ev); api.after(1100, arm);
       }
     });
@@ -88,7 +89,7 @@ const reaction = {
 };
 
 const scramble = {
-  id: 'scramble', name: 'สลับอักษร', icon: '🔤', grad: ['#06b6d4', '#3b82f6'], skill: 'ภาษา',
+  id: 'scramble', name: 'สลับอักษร', icon: I.scramble, grad: ['#1c8ef0'], skill: 'ภาษา',
   desc: 'เรียงตัวอักษรให้เป็นคำ', how: 'แตะตัวอักษรเรียงเป็นคำตามคำใบ้ ภายใน 60 วินาที คำละ 100 แต้ม กด "ข้าม" ได้ถ้าคิดไม่ออก', stars: [300, 600, 900],
   start(api) {
     const list = shuffle(WORDS);
@@ -103,7 +104,7 @@ const scramble = {
       api.stage.innerHTML = `<div class="q-card pop"><small>คำใบ้</small><p>${esc(h)}</p></div>
         <div class="slots">${parts.map(() => '<span class="slot"></span>').join('')}</div>
         <div class="tiles">${tiles.map((t, i) => `<button class="tile" data-i="${i}">${esc(t)}</button>`).join('')}</div>
-        <div class="row-btns"><button class="btn ghost sm" data-a="undo">⌫ ลบ</button><button class="btn ghost sm" data-a="skip">ข้าม ⏭</button></div>`;
+        <div class="row-btns"><button class="btn ghost sm" data-a="undo">ลบ</button><button class="btn ghost sm" data-a="skip">ข้าม</button></div>`;
       const slots = $$('.slot', api.stage);
       const paint = () => slots.forEach((s, i) => { s.textContent = ans[i] ? tiles[ans[i].dataset.i] : ''; s.classList.toggle('fill', !!ans[i]); });
       $$('.tile', api.stage).forEach(b => b.onclick = ev => {
@@ -124,7 +125,7 @@ const scramble = {
 };
 
 const math = {
-  id: 'math', name: 'คิดเลขเร็ว', icon: '🧮', grad: ['#10b981', '#84cc16'], skill: 'ตรรกะ',
+  id: 'math', name: 'คิดเลขเร็ว', icon: I.math, grad: ['#0c9c9c'], skill: 'ตรรกะ',
   desc: 'บวก ลบ คูณ แข่งกับเวลา', how: '45 วินาที ตอบถูกต่อเนื่องได้โบนัสคอมโบ ตอบผิด -20 และคอมโบหาย', stars: [300, 550, 800],
   start(api) {
     let streak = 0, n = 0;
@@ -138,9 +139,9 @@ const math = {
       else { a = rand(8, 30 + lv * 30); b = rand(2, a - 1); ans = a - b; }
       const opts = new Set([ans]);
       while (opts.size < 4) { const d = ans + pick([-10, -3, -2, -1, 1, 2, 3, 10]); if (d >= 0) opts.add(d); }
-      api.info(streak > 1 ? `คอมโบ x${streak} 🔥` : '');
+      api.info(streak > 1 ? `คอมโบ x${streak}` : '');
       api.stage.innerHTML = `<div class="big-q pop">${a} ${op} ${b}</div>
-        <div class="opts two">${shuffle([...opts]).map(o => `<button class="opt num">${o}</button>`).join('')}</div>`;
+        <div class="opts two col">${shuffle([...opts]).map(o => `<button class="opt num">${o}</button>`).join('')}</div>`;
       $$('.opt', api.stage).forEach(x => x.onclick = ev => {
         if (+x.textContent === ans) { streak++; api.add(25 + Math.min(streak - 1, 5) * 3, ev); }
         else { streak = 0; api.add(-20, ev); }
@@ -156,7 +157,7 @@ const COLORS = [
   { n: 'เหลือง', c: '#facc15' }, { n: 'ม่วง', c: '#c084fc' }, { n: 'ส้ม', c: '#fb923c' }
 ];
 const stroop = {
-  id: 'stroop', name: 'สีหลอกตา', icon: '🎨', grad: ['#ec4899', '#f97316'], skill: 'สมาธิ',
+  id: 'stroop', name: 'สีหลอกตา', icon: I.stroop, grad: ['#e03131'], skill: 'สมาธิ',
   desc: 'ตอบ "สีของตัวอักษร" ไม่ใช่คำที่อ่าน', how: '45 วินาที เลือกปุ่มที่ตรงกับ "สีหมึก" ของคำ อย่าให้คำที่อ่านหลอกได้! ตอบผิด -20', stars: [350, 650, 900],
   start(api) {
     let streak = 0;
@@ -164,7 +165,7 @@ const stroop = {
     const next = () => {
       const word = pick(COLORS), ink = pick(COLORS.filter(c => c !== word));
       const opts = shuffle([ink, word, ...shuffle(COLORS.filter(c => c !== ink && c !== word)).slice(0, 2)]);
-      api.info(streak > 1 ? `คอมโบ x${streak} 🔥` : 'ตัวอักษรสีอะไร?');
+      api.info(streak > 1 ? `คอมโบ x${streak}` : 'ตัวอักษรสีอะไร?');
       api.stage.innerHTML = `<div class="big-q pop stroke" style="color:${ink.c}">${word.n}</div>
         <div class="opts two">${opts.map(o => `<button class="opt swatch" data-c="${o.c}"><i style="background:${o.c}"></i>${o.n}</button>`).join('')}</div>`;
       $$('.opt', api.stage).forEach(x => x.onclick = ev => {
@@ -178,10 +179,10 @@ const stroop = {
 };
 
 const sequence = {
-  id: 'sequence', name: 'จำลำดับแสง', icon: '🎹', grad: ['#6366f1', '#a855f7'], skill: 'ความจำ',
+  id: 'sequence', name: 'จำลำดับแสง', icon: I.sequence, grad: ['#8f4bf0'], skill: 'ความจำ',
   desc: 'จำลำดับแล้วแตะตามให้ถูก', how: 'ดูลำดับไฟแล้วแตะตาม ลำดับจะยาวขึ้นทุกรอบ แตะผิดครั้งเดียวจบเกม ผ่าน 10 รอบได้ 1,100 แต้ม', stars: [300, 560, 900],
   start(api) {
-    const pads = ['🔷', '🟡', '🟢', '🔴', '🟣', '🟠'];
+    const pads = ['', '', '', '', '', ''];
     api.stage.innerHTML = `<div class="seq-msg" aria-live="polite"></div>
       <div class="seq-grid">${pads.map((p, i) => `<button class="seq" data-i="${i}" aria-label="ปุ่ม ${i + 1}">${p}</button>`).join('')}</div>`;
     const btns = $$('.seq', api.stage), msg = $('.seq-msg', api.stage), seq = [];
@@ -190,24 +191,24 @@ const sequence = {
     const round = () => {
       if (seq.length >= 10) return api.end();
       input = false; seq.push(rand(0, 5)); pos = 0;
-      api.info(`รอบ ${seq.length}`); msg.textContent = '👀 ดูให้ดี...';
+      api.info(`รอบ ${seq.length}`); msg.textContent = 'ดูให้ดี...';
       const gap = Math.max(340, 620 - seq.length * 25);
       seq.forEach((s, k) => api.after(600 + k * gap, () => flash(s)));
-      api.after(600 + seq.length * gap, () => { input = true; msg.textContent = '👉 ตาคุณแล้ว!'; });
+      api.after(600 + seq.length * gap, () => { input = true; msg.textContent = 'ตาคุณแล้ว!'; });
     };
     btns.forEach(b => b.addEventListener('pointerdown', ev => {
       if (!input) return;
       const i = +b.dataset.i;
-      if (i !== seq[pos]) { input = false; b.classList.add('wrong'); msg.textContent = '💥 ผิดลำดับ!'; api.miss(); return api.after(900, api.end); }
+      if (i !== seq[pos]) { input = false; b.classList.add('wrong'); msg.textContent = 'ผิดลำดับ!'; api.miss(); return api.after(900, api.end); }
       flash(i); pos++;
-      if (pos === seq.length) { input = false; api.add(seq.length * 20, ev); msg.textContent = '✅ เยี่ยม!'; api.after(700, round); }
+      if (pos === seq.length) { input = false; api.add(seq.length * 20, ev); msg.textContent = 'เยี่ยม!'; api.after(700, round); }
     }));
     round();
   }
 };
 
 const oddone = {
-  id: 'oddone', name: 'ตาไวจับผิด', icon: '👁️', grad: ['#14b8a6', '#6366f1'], skill: 'การสังเกต',
+  id: 'oddone', name: 'ตาไวจับผิด', icon: I.oddone, grad: ['#e8890c'], skill: 'การสังเกต',
   desc: 'หาช่องที่สีต่างจากเพื่อน', how: '45 วินาที แตะช่องที่สีไม่เหมือนช่องอื่น ยิ่งผ่านหลายด่าน ตารางยิ่งใหญ่และสียิ่งใกล้กัน แตะผิด -15', stars: [350, 650, 900],
   start(api) {
     let lv = 0;
@@ -228,14 +229,14 @@ const oddone = {
 };
 
 const targets = {
-  id: 'targets', name: 'ล่าดาว', icon: '🌟', grad: ['#f43f5e', '#8b5cf6'], skill: 'ความเร็ว',
-  desc: 'แตะดาวให้ทัน หลบระเบิด', how: '30 วินาที ⭐ +15 · 💎 +50 · 💣 -60 เป้าจะหายเร็วขึ้นเรื่อย ๆ', stars: [300, 480, 650],
+  id: 'targets', name: 'ล่าดาว', icon: I.targets, grad: ['#d6336c'], skill: 'ความเร็ว',
+  desc: 'แตะดาวให้ทัน หลบระเบิด', how: '30 วินาที ⭐ +15 · 💎 +50 · 💣 -80 เป้าจะหายเร็วขึ้นเรื่อย ๆ', stars: [300, 480, 650],
   start(api) {
     api.stage.innerHTML = `<div class="field"></div>`;
     const field = $('.field', api.stage);
     api.timer(30, api.end);
     const spawn = () => {
-      const r = Math.random(), kind = r < 0.16 ? ['💣', -60] : r < 0.26 ? ['💎', 50] : ['⭐', 15];
+      const r = Math.random(), kind = r < 0.22 ? ['💣', -80] : r < 0.32 ? ['💎', 50] : ['⭐', 15];
       const life = 650 + api.timeLeft() * 22;
       const t = document.createElement('button');
       t.className = 'target'; t.textContent = kind[0]; t.setAttribute('aria-label', kind[0]);
@@ -251,7 +252,7 @@ const targets = {
 };
 
 const order = {
-  id: 'order', name: 'เรียงเลขสายตาไว', icon: '🔢', grad: ['#0ea5e9', '#22d3ee'], skill: 'สมาธิ',
+  id: 'order', name: 'เรียงเลขสายตาไว', icon: I.order, grad: ['#3358e0'], skill: 'สมาธิ',
   desc: 'แตะเลข 1 ถึง 25 ตามลำดับ', how: 'แตะเลขเรียงจาก 1 ไป 25 ให้เร็วที่สุดใน 60 วินาที เลขละ 20 แต้ม แตะผิด -5 ครบแล้วเวลาที่เหลือเป็นโบนัส', stars: [320, 560, 800],
   start(api) {
     let want = 1;
