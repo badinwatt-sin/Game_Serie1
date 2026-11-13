@@ -51,3 +51,7 @@ create policy "gs polls delete" on public.gs_polls for delete to anon using (tru
 create policy "gs votes read" on public.gs_votes for select to anon using (true);
 create policy "gs votes insert" on public.gs_votes for insert to anon with check (true);
 create policy "gs votes update" on public.gs_votes for update to anon using (true) with check (true);
+
+-- สิทธิ์ของ key สาธารณะ (บางโปรเจกต์ไม่ได้ให้สิทธิ์ anon อัตโนมัติ จึงระบุให้ชัด)
+grant select, insert, update on public.gs_scores, public.gs_votes to anon;
+grant select, insert, update, delete on public.gs_polls to anon;

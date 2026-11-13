@@ -1,7 +1,7 @@
-// ตั้งค่ากระดานคะแนนสด (ไม่บังคับ)
-// ถ้าเว้นว่างไว้ เกมยังเล่นได้ครบทุกอย่าง แต่คะแนนจะเก็บอยู่ในเครื่องของผู้เล่นแต่ละคน
-// ถ้าต้องการให้คะแนนทุกเครื่องขึ้นจอกลางแบบเรียลไทม์ ดูขั้นตอนใน docs/SETUP.md
+// การเชื่อมต่อกระดานคะแนนสดและโพล (Supabase)
+// key นี้เป็น publishable key ที่ออกแบบให้อยู่ในหน้าเว็บได้ สิทธิ์ถูกจำกัดด้วย RLS ให้ใช้ได้เฉพาะตาราง gs_*
+// เว้นว่างทั้งสองค่าเพื่อปิดโหมดสด (เกมยังเล่นได้ คะแนนเก็บในเครื่องผู้เล่น) — ดู docs/SETUP.md
 window.GS_CONFIG = {
-  supabaseUrl: '',   // เช่น 'https://xxxx.supabase.co'
-  supabaseKey: ''    // publishable / anon key
+  supabaseUrl: 'https://lrqwtmejmevkbuwsofww.supabase.co',
+  supabaseKey: 'sb_publishable_-h42aX6dpNFVkwt48tJZYA_EQmoOwDp'
 };
