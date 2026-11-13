@@ -58,7 +58,22 @@ const q = encodeURIComponent;
 
 export const listPolls = room => rest(`gs_polls?room=eq.${q(room)}&select=id,q,type,options,open&order=created_at.asc`);
 export const listVotes = room => rest(`gs_votes?room=eq.${q(room)}&select=poll_id,pid,answer&limit=20000`);
-export const savePoll = poll => rest('gs_polls?on_conflict=id', { ...upsert, body: JSON.stringify(poll) });
-export const setPollOpen = (id, open) => rest(`gs_polls?id=eq.${q(id)}`, { method: 'PATCH', body: JSON.stringify({ open }) });
-export const deletePoll = id => rest(`gs_polls?id=eq.${q(id)}`, { method: 'DELETE' });
+
+// งานของผู้จัดต้องแนบรหัสผ่าน — ฐานข้อมูลเป็นผู้ตรวจ (ดู supabase/admin.sql)
+const rpc = async (fn, body) => {
+  if (!enabled) return { ok: false, status: 0, data: null };
+  try {
+    const res = await fetch(`${base}/rest/v1/rpc/${fn}`, { method: 'POST', headers, body: JSON.stringify(body) });
+    return { ok: res.ok, status: res.status, data: res.ok ? await res.json().catch(() => null) : null };
+  } catch { return { ok: false, status: 0, data: null }; }
+};
+export const adminCheck = p => rpc('gs_admin_check', { p });
+// ฐานข้อมูลที่ยังไม่ได้รัน admin.sql จะตอบ 404 → ใช้วิธีเดิม (ไม่มีรหัสผ่าน) เพื่อให้ระบบยังทำงานได้
+const viaRpc = async (fn, body, legacy) => { const r = await rpc(fn, body); return r.status === 404 ? legacy() : r; };
+export const savePoll = poll => viaRpc('gs_poll_save', { p: state.adminPass, poll },
+  () => rest('gs_polls?on_conflict=id', { ...upsert, body: JSON.stringify(poll) }));
+export const setPollOpen = (id, open) => viaRpc('gs_poll_set_open', { p: state.adminPass, poll_id: id, is_open: open },
+  () => rest(`gs_polls?id=eq.${q(id)}`, { method: 'PATCH', body: JSON.stringify({ open }) }));
+export const deletePoll = id => viaRpc('gs_poll_delete', { p: state.adminPass, poll_id: id },
+  () => rest(`gs_polls?id=eq.${q(id)}`, { method: 'DELETE' }));
 export const vote = (room, poll_id, answer) => rest('gs_votes?on_conflict=poll_id,pid', { ...upsert, body: JSON.stringify({ room, poll_id, pid: state.pid, answer: String(answer).slice(0, 80) }) });

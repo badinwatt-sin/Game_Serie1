@@ -142,7 +142,7 @@ export function mountHostPolls(box) {
     if (type === 'choice' && (options.length < 2 || options.length > 6)) return err.textContent = 'ใส่ตัวเลือก 2–6 ข้อ บรรทัดละ 1 ข้อ';
     err.textContent = '';
     const r = await sync.savePoll({ id: crypto.randomUUID?.() || String(Date.now()), room, q, type, options, open: true });
-    if (!r.ok) return err.textContent = 'สร้างโพลไม่สำเร็จ ตรวจสอบการเชื่อมต่อ';
+    if (!r.ok) return err.textContent = r.status ? 'สร้างโพลไม่สำเร็จ รหัสผ่านผู้จัดอาจถูกเปลี่ยน ลองออกจากระบบแล้วเข้าใหม่' : 'สร้างโพลไม่สำเร็จ ตรวจสอบการเชื่อมต่อ';
     e.target.reset(); setType('choice'); $('details', box).open = false; sfx.good(); toast('เปิดโพลแล้ว ผู้เล่นเห็นในแท็บ "โพล"'); load();
   };
   list.addEventListener('click', async e => {

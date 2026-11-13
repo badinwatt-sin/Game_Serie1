@@ -53,7 +53,7 @@ function me(first) {
         `<button type="button" role="radio" aria-checked="${a === avatar}" class="av">${a}</button>`).join('')}</div>
       <button class="btn primary">${first === true ? 'เริ่มเล่นเลย' : 'บันทึก'}</button>
     </form>
-    ${first === true ? `<a class="link" href="#/host">ฉันเป็นผู้จัดกิจกรรม →</a>` : ''}
+    ${first === true ? `<a class="link" href="#/host">สำหรับผู้จัด</a>` : ''}
   </section>`;
   $$('.av').forEach(b => b.onclick = () => { avatar = b.textContent; $$('.av').forEach(x => x.setAttribute('aria-checked', x === b)); sfx.tap(); });
   $('#f').onsubmit = e => {
@@ -307,9 +307,36 @@ function poll() {
 }
 
 // ---------- ผู้จัด ----------
-let hostView = 'score';
+let hostView = 'score', adminOpen = false; // adminOpen: ฐานข้อมูลยังไม่ได้ตั้งรหัสผ่านผู้จัด
+function hostLogin() {
+  app.innerHTML = `<section class="screen center">
+    <form class="card stack" id="lf">
+      <h1 class="h1">สำหรับผู้จัด</h1>
+      <p>ใส่รหัสผ่านผู้จัดเพื่อสร้างห้อง ดูคะแนน และตั้งโพล</p>
+      <label class="lbl" for="pw">รหัสผ่าน</label>
+      <input id="pw" class="inp" type="password" autocomplete="current-password" required>
+      <p class="err" id="le" role="alert"></p>
+      <button class="btn primary">เข้าสู่ระบบ</button>
+    </form>
+    <a class="link" href="#/">กลับไปเล่นเกม</a>
+  </section>`;
+  $('#lf').onsubmit = async e => {
+    e.preventDefault();
+    const btn = $('.btn', e.target), pw = $('#pw').value;
+    btn.disabled = true; $('#le').textContent = 'กำลังตรวจสอบ…';
+    const r = await sync.adminCheck(pw);
+    btn.disabled = false;
+    if (r.ok && r.data === true) { state.adminPass = pw; save(); return host(); }
+    if (r.status === 404) { adminOpen = true; toast('ฐานข้อมูลยังไม่ได้ตั้งรหัสผ่านผู้จัด — เข้าได้โดยไม่ต้องใช้รหัส'); return host(); }
+    $('#le').textContent = r.ok ? 'รหัสผ่านไม่ถูกต้อง' : r.status ? 'ตรวจรหัสผ่านไม่สำเร็จ ลองใหม่อีกครั้ง' : 'เชื่อมต่อไม่ได้ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่';
+  };
+}
+const logoutBtn = `<button type="button" class="btn danger" id="lo">ออกจากระบบผู้จัด</button>`;
+const bindLogout = () => { const b = $('#lo'); if (b) b.onclick = () => { state.adminPass = null; adminOpen = false; save(); host(); }; };
+
 function host() {
   leave?.(); leave = null;
+  if (sync.enabled && !state.adminPass && !adminOpen) return hostLogin();
   const h = state.host;
   if (!h) {
     app.innerHTML = `<section class="screen">
@@ -329,7 +356,9 @@ function host() {
         <button class="btn primary">สร้างห้อง</button>
       </form>
       <p class="hint">ห้องเดียวรองรับได้ตั้งแต่กลุ่มเล็ก 2 คน จนถึงงานใหญ่หลายร้อยคน (สูงสุด 12 ทีม)</p>
+      ${sync.enabled ? logoutBtn : ''}
     </section>${nav('host')}`;
+    bindLogout();
     let mode = 'team', teams = 6, touched = false;
     const upd = () => {
       const n = +$('#sz').value;
@@ -364,6 +393,7 @@ function host() {
       <div class="row-btns"><button class="btn ghost sm" id="cp">คัดลอกลิงก์</button><button class="btn ghost sm" id="sh">แชร์</button></div>
       <button class="btn primary" id="jn">เข้าห้องนี้ด้วยเครื่องนี้</button>
       <button class="btn danger" id="cl">ปิดห้อง / สร้างใหม่</button>
+      ${sync.enabled ? logoutBtn : ''}
     </div>
     <div class="host-board">
       <div class="seg big" role="tablist"><button role="tab" data-v="score" aria-selected="${hostView === 'score'}">คะแนน</button><button role="tab" data-v="poll" aria-selected="${hostView === 'poll'}">โพล / แบบสำรวจ</button></div>
@@ -387,6 +417,7 @@ function host() {
   $('#cp').onclick = async () => { try { await navigator.clipboard.writeText(url); toast('คัดลอกลิงก์แล้ว'); } catch { prompt('คัดลอกลิงก์นี้', url); } };
   $('#sh').onclick = () => navigator.share ? navigator.share({ title: h.name, text: `มาเล่นเกมกัน! รหัสห้อง ${h.code}`, url }).catch(() => {}) : $('#cp').click();
   $('#jn').onclick = () => { pendingRoom = { code: h.code, teams: h.teams, name: h.name }; go('#/room'); };
+  bindLogout();
   $('#cl').onclick = () => { if (confirm('ปิดห้องนี้และสร้างห้องใหม่? คะแนนที่จดไว้ในหน้านี้จะหายไป')) { state.host = null; save(); host(); } };
 
   // คะแนนโบนัส / จดคะแนนเอง
