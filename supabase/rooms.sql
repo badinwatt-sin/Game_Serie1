@@ -68,3 +68,14 @@ end $$;
 
 grant execute on function public.gs_join(text, jsonb), public.gs_room_save(text, jsonb),
   public.gs_player_active(text, text, text, boolean) to anon;
+
+-- ---------- รอบการแข่งที่ผู้สอนปล่อยพร้อมกัน ----------
+-- done = false: คะแนนระหว่างเล่น (ใช้แสดงการแข่งสดบนหน้า Live), true: ส่งผลรอบนั้นแล้ว
+alter table public.gs_scores add column if not exists done boolean not null default true;
+
+-- เวลาเซิร์ฟเวอร์ (มิลลิวินาที) ให้ทุกเครื่องนับถอยหลังตรงกัน แม้นาฬิกาเครื่องจะไม่ตรง
+create or replace function public.gs_now() returns bigint
+language sql stable set search_path = '' as $$
+  select (extract(epoch from clock_timestamp()) * 1000)::bigint
+$$;
+grant execute on function public.gs_now() to anon;

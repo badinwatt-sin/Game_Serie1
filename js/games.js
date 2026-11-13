@@ -1,7 +1,7 @@
 // มินิเกมทั้ง 10 — แต่ละเกมออกแบบให้คะแนนเต็มอยู่ราว ๆ 1,000 เพื่อให้น้ำหนักใกล้เคียงกัน
 // api ที่ได้จาก shell: stage, add(n, ev), miss(), score, info(t), timer(s, onEnd), stopTimer(), timeLeft(),
 //                      after(ms, fn), every(ms, fn), end()
-import { $, $$, esc, rand, pick, shuffle, clamp, sfx, graphemes } from './core.js';
+import { $, $$, esc, rand, rnd, pick, shuffle, clamp, sfx, graphemes } from './core.js';
 import { QUIZ, WORDS, MEMORY_ICONS } from './data.js';
 import { I } from './icons.js';
 
@@ -236,7 +236,7 @@ const targets = {
     const field = $('.field', api.stage);
     api.timer(30, api.end);
     const spawn = () => {
-      const r = Math.random(), kind = r < 0.22 ? ['💣', -80] : r < 0.32 ? ['💎', 50] : ['⭐', 15];
+      const r = rnd(), kind = r < 0.22 ? ['💣', -80] : r < 0.32 ? ['💎', 50] : ['⭐', 15];
       const life = 650 + api.timeLeft() * 22;
       const t = document.createElement('button');
       t.className = 'target'; t.textContent = kind[0]; t.setAttribute('aria-label', kind[0]);

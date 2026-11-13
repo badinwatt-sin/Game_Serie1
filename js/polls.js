@@ -26,7 +26,7 @@ function patch(box, items) {
   [...box.children].forEach(el => seen.has(el.dataset.k) || el.remove());
 }
 
-function resultHTML(poll, votes, mine) {
+export function resultHTML(poll, votes, mine) {
   const vs = votes.filter(v => v.poll_id === poll.id), n = vs.length;
   const row = (label, c, me) => `<li class="${me ? 'me' : ''}"><span class="pr-l">${label}</span>
     <span class="pr-bar"><i style="width:${n ? c / n * 100 : 0}%"></i></span><b>${c}</b></li>`;

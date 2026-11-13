@@ -24,6 +24,17 @@ const rpc = async (fn, body) => {
 };
 const upsert = { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' } };
 
+// ---------- เวลาเซิร์ฟเวอร์: ให้ทุกเครื่องนับถอยหลังตรงกัน แม้นาฬิกาเครื่องไม่ตรง ----------
+let offset = 0;
+export const now = () => Date.now() + offset;
+export async function syncClock() {
+  let best = Infinity;
+  for (let i = 0; i < 3; i++) {
+    const t0 = Date.now(), r = await rpc('gs_now', {}), t1 = Date.now();
+    if (r.ok && typeof r.data === 'number' && t1 - t0 < best) { best = t1 - t0; offset = r.data - (t0 + t1) / 2; }
+  }
+}
+
 // ---------- ห้อง ----------
 // คืน { ok, data: room | null } — data เป็น null เมื่อไม่มีห้องนี้ (หรือถูกปิดแล้ว)
 export async function getRoom(code) {
@@ -42,6 +53,13 @@ export async function join(code, player) {
 export const adminCheck = p => rpc('gs_admin_check', { p });
 export const saveRoom = room => rpc('gs_room_save', { p: state.adminPass, room });
 export const setPlayerActive = (code, pid, active) => rpc('gs_player_active', { p: state.adminPass, room_code: code, player_id: pid, is_active: active });
+// รอบการแข่ง: เตรียม (ผู้เล่นเห็นคำอธิบาย) → ปล่อย (เริ่มพร้อมกันใน 6 วินาที) → จบ (ประกาศผล) → ล้าง
+export const roundOps = H => ({
+  prepare: id => { const n = (H.state.seq || 0) + 1; H.state.seq = n; H.state.round = { n, game: id, phase: 'ready' }; return saveRoom(H); },
+  release: () => { H.state.round = { ...H.state.round, phase: 'live', startAt: Math.round(now()) + 6000 }; return saveRoom(H); },
+  finish: () => { H.state.round = { ...H.state.round, phase: 'done' }; return saveRoom(H); },
+  clear: () => { H.state.round = null; return saveRoom(H); }
+});
 export const savePoll = poll => rpc('gs_poll_save', { p: state.adminPass, poll });
 export const setPollOpen = (id, open) => rpc('gs_poll_set_open', { p: state.adminPass, poll_id: id, is_open: open });
 export const deletePoll = id => rpc('gs_poll_delete', { p: state.adminPass, poll_id: id });
@@ -50,20 +68,25 @@ export const deletePoll = id => rpc('gs_poll_delete', { p: state.adminPass, poll
 // ส่งคะแนนดีที่สุดของทุกเกมในห้องปัจจุบัน (ส่งซ้ำได้: upsert ตาม room+pid+game)
 export async function pushScores() {
   if (!enabled || !state.room || !state.player) return false;
-  const rows = Object.entries(myScores()).filter(([, s]) => s.best > 0).map(([game, s]) => ({
+  const rows = Object.entries(myScores()).filter(([k, s]) => s.best > 0 || /^\d+:/.test(k)).map(([game, s]) => ({
     room: state.room.code, pid: state.pid, name: state.player.name.slice(0, 24), avatar: state.player.avatar,
-    team: state.player.team ?? null, game, score: s.best, updated_at: new Date().toISOString()
+    team: state.player.team ?? null, game, score: s.best, done: s.done !== false, updated_at: new Date().toISOString()
   }));
   if (!rows.length) return true;
   return (await rest('gs_scores?on_conflict=room,pid,game', { ...upsert, body: JSON.stringify(rows) })).ok;
 }
 
-// ผู้เล่นทั้งห้องพร้อมคะแนนรวม เรียงจากมากไปน้อย → { players: [{pid,name,avatar,color,style,team,total,games}], error }
-export async function fetchRoom(code) {
-  const [pl, sc] = await Promise.all([listPlayers(code), rest(`gs_scores?room=eq.${q(code)}&select=pid,score&limit=20000`)]);
+// ผู้เล่นทั้งห้องพร้อมคะแนนรวม เรียงจากมากไปน้อย → { players: [{..., total, games, round, rdone}], error }
+// round / rdone = คะแนนและสถานะ "เล่นจบแล้ว" ของรอบ roundKey (null ถ้ายังไม่มีคะแนนในรอบนั้น)
+export async function fetchRoom(code, roundKey = null) {
+  const [pl, sc] = await Promise.all([listPlayers(code), rest(`gs_scores?room=eq.${q(code)}&select=pid,game,score,done&limit=20000`)]);
   if (!pl.ok || !sc.ok) return { players: [], error: 'เชื่อมต่อไม่ได้' };
-  const map = new Map(pl.data.map(p => [p.pid, { ...p, total: 0, games: 0 }]));
-  for (const r of sc.data) { const p = map.get(r.pid); if (p) { p.total += r.score; p.games++; } }
+  const map = new Map(pl.data.map(p => [p.pid, { ...p, total: 0, games: 0, round: null, rdone: false }]));
+  for (const r of sc.data) {
+    const p = map.get(r.pid); if (!p) continue;
+    p.total += r.score; p.games++;
+    if (r.game === roundKey) { p.round = r.score; p.rdone = r.done !== false; }
+  }
   return { players: [...map.values()].sort((a, b) => b.total - a.total), error: null };
 }
 

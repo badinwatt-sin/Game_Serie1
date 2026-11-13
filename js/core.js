@@ -3,11 +3,20 @@
 export const $ = (sel, root = document) => root.querySelector(sel);
 export const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 export const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-export const rand = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
-export const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+// ตัวสุ่มของเกม: ตั้ง seed เดียวกัน → ทุกเครื่องได้โจทย์ชุดเดียวกัน (ใช้ในรอบที่ผู้สอนปล่อย)
+let rng = Math.random;
+export function setSeed(seed) {
+  if (seed == null) { rng = Math.random; return; }
+  let a = 2166136261;
+  for (const ch of String(seed)) a = Math.imul(a ^ ch.codePointAt(0), 16777619);
+  rng = () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+export const rnd = () => rng();
+export const rand = (a, b) => Math.floor(rng() * (b - a + 1)) + a;
+export const pick = arr => arr[Math.floor(rng() * arr.length)];
 export const shuffle = arr => {
   const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
   return a;
 };
 export const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
