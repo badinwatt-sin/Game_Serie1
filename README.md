@@ -77,3 +77,7 @@ supabase/          schema.sql → admin.sql → rooms.sql
 ```
 
 ไลบรารีภายนอกมีตัวเดียวคือ [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) (MIT)
+
+## Recruit Hub
+
+เครื่องมือสรรหาตัวแทนใหม่ (แยกจากเกม) อยู่ในโฟลเดอร์ [`recruit/`](recruit/README.md)
