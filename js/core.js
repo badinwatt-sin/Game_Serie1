@@ -21,7 +21,17 @@ export const TEAMS = [
   { n: 'สิงโต', e: '🦁', c: '#f59e0b' }, { n: 'นกฮูก', e: '🦉', c: '#2dd4bf' },
   { n: 'ผึ้ง', e: '🐝', c: '#fde047' }, { n: 'โลมา', e: '🐬', c: '#60a5fa' }
 ];
-export const AVATARS = ['😀', '😎', '🤓', '🥳', '🤠', '🦸', '🧙', '🧑‍🚀', '🐱', '🐶', '🦊', '🐼', '🐸', '🐵', '🦄', '🐯', '🤖', '👾', '🌟', '🔥'];
+// ตัวตนของผู้เล่น: อีโมจิ (ห้ามซ้ำในห้อง) + สีพื้น + สไตล์
+// ใช้เฉพาะอีโมจิรหัสเดี่ยว เพื่อให้แสดงผลเหมือนกันทุกเครื่อง — รวมต้องไม่น้อยกว่า 150 ตัว (ตรงกับ supabase/rooms.sql)
+export const EMOJI_GROUPS = [
+  { n: 'คน', e: [...'😀😎🤓🥳🤠😇🤩😜🥸🤖👻👽👾🤡😺🦸🧙🧛🧜🧚🥷🎅🤴👸🧞🧟🦹💂👷🤶👼'] },
+  { n: 'สัตว์', e: [...'🐶🐱🐭🐹🐰🦊🐻🐼🐨🐯🦁🐮🐷🐸🐵🐔🐧🐦🦆🦅🦉🦇🐺🐗🐴🦄🐝🦋🐌🐞🐢🐍🦎🐙🦑🦀🐠🐬🐳🦈🐊🐘🦒🦘🦥🦦🦔🦜🦩🐲'] },
+  { n: 'ของกิน', e: [...'🍎🍊🍋🍌🍉🍇🍓🍒🍑🥭🍍🥥🥝🍅🥑🌽🥕🍄🥐🍞🧀🍔🍟🍕🌮🍣🍩🍪🎂🍦🍿🧋'] },
+  { n: 'ของเล่น', e: [...'⚽🏀🏈🎾🏐🎱🏓🥊🎯🎮🎲🎸🎺🥁🎨🎬🎤🎧📷🚀🚗🚲🛵🚁⛵🏆💎🔑💡🔥⭐🌈🌙🌵🌻🍀🌊⚡🎈🎁'] }
+];
+export const ALL_EMOJIS = EMOJI_GROUPS.flatMap(g => g.e);
+export const COLORS = ['#ff6b6b', '#ff9f43', '#ffd43b', '#69db7c', '#38d9a9', '#4dabf7', '#9775fa', '#f783ac'];
+export const STYLES = ['นักคิด', 'นักลุย', 'นักประสาน', 'นักวิเคราะห์', 'นักสร้างสรรค์', 'นักฟัง', 'นักวางแผน', 'สายฮา'];
 
 // ---------- รหัสห้อง: 4 ตัวอักษรสุ่ม + 1 ตัวบอกจำนวนทีม (0 = เล่นเดี่ยว) ----------
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -37,7 +47,7 @@ export const parseRoomCode = raw => {
 
 // ---------- state (localStorage) ----------
 const KEY = 'gs1';
-const blank = () => ({ pid: (crypto.randomUUID?.() || String(Math.random()).slice(2)), player: null, room: null, scores: {}, host: null, sound: true });
+const blank = () => ({ pid: (crypto.randomUUID?.() || String(Math.random()).slice(2)), player: null, room: null, scores: {}, hostCode: null, adminPass: null, sound: true });
 export let state = blank();
 try { state = { ...blank(), ...JSON.parse(localStorage.getItem(KEY) || '{}') }; } catch { /* ใช้ค่าเริ่มต้น */ }
 export const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* โหมดส่วนตัว: ไม่บันทึก */ } };

@@ -36,7 +36,7 @@ small { font-size: .82rem; opacity: .78; }
 #app { max-width: 520px; margin: 0 auto; }
 .screen {
   min-height: 100dvh; display: flex; flex-direction: column; gap: 16px;
-  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) calc(104px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) calc(32px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
 }
 .screen.center { justify-content: center; padding-bottom: 32px; }
 .stack { display: flex; flex-direction: column; gap: 12px; }
@@ -117,8 +117,8 @@ input[type=range] { width: 100%; height: var(--tap); accent-color: var(--pink); 
 .hero { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .me { display: flex; align-items: center; gap: 12px; min-width: 0; min-height: var(--tap); }
 .me b { display: block; font-size: 1.2rem; line-height: 1.2; }
-.ava { display: grid; place-items: center; flex: none; width: 52px; height: 52px; border-radius: 16px; font-size: 1.7rem; background: var(--paper); box-shadow: 0 4px 0 var(--edge); rotate: -4deg; }
-.ava.sm { width: 36px; height: 36px; border-radius: 10px; font-size: 1.15rem; box-shadow: none; background: var(--soft); rotate: none; }
+.ava { display: grid; place-items: center; flex: none; width: 52px; height: 52px; border-radius: 16px; font-size: 1.7rem; background: var(--c, #fff); box-shadow: 0 4px 0 var(--edge); rotate: -4deg; }
+.ava.sm { width: 36px; height: 36px; border-radius: 10px; font-size: 1.15rem; box-shadow: none; background: var(--c, var(--soft)); rotate: none; }
 .ava.big { width: 68px; height: 68px; font-size: 2.2rem; rotate: 5deg; }
 .total { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 18px; border-radius: var(--r); background: var(--yellow); color: var(--ink); box-shadow: 0 6px 0 #c58f00; }
 .total b { display: block; font-size: 2.6rem; font-weight: 800; line-height: 1.05; font-variant-numeric: tabular-nums; }
@@ -332,5 +332,89 @@ details summary { min-height: var(--tap); display: flex; align-items: center; fo
 }
 
 #fx { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 30; }
-#toast { position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom)); translate: -50% 20px; z-index: 40; padding: 10px 20px; border-radius: 14px; background: var(--ink); color: #fff; font-weight: 500; opacity: 0; pointer-events: none; transition: opacity .2s, translate .25s var(--spring); max-width: 90vw; box-shadow: 0 0 0 3px #fff; }
+#toast { position: fixed; left: 50%; bottom: calc(28px + env(safe-area-inset-bottom)); translate: -50% 20px; z-index: 40; padding: 10px 20px; border-radius: 14px; background: var(--ink); color: #fff; font-weight: 500; opacity: 0; pointer-events: none; transition: opacity .2s, translate .25s var(--spring); max-width: 90vw; box-shadow: 0 0 0 3px #fff; }
 #toast.show { opacity: 1; translate: -50% 0; }
+
+/* ================= v3: ผู้สอนคุมจอ ผู้เล่นแค่เล่น ================= */
+.back { align-self: flex-start; min-height: var(--tap); display: flex; align-items: center; font-weight: 500; opacity: .85; }
+.kicker { font-weight: 600; letter-spacing: .03em; color: var(--pink); opacity: 1; }
+.score-pill { display: flex; flex-direction: column; align-items: flex-end; flex: none; padding: 4px 14px; border-radius: 14px; background: var(--yellow); color: var(--ink); box-shadow: 0 4px 0 #c58f00; }
+.score-pill small { font-size: .7rem; line-height: 1.2; }
+.score-pill b { font-size: 1.5rem; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+#f-msg:empty, #f-polls:empty, #f-games:empty, #f-board:empty, #f-wait:empty, .pl:empty { display: none; }
+#f-games, #f-board { display: flex; flex-direction: column; gap: 12px; }
+
+/* ข้อความจากผู้สอน */
+.announce { padding: 14px 18px; border-radius: var(--r); background: var(--ink); border: 3px solid var(--yellow); }
+.announce small { color: var(--yellow); font-weight: 600; opacity: 1; }
+.announce p { font-size: 1.25rem; font-weight: 600; text-wrap: balance; }
+
+/* เกมเดียวที่ผู้สอนเปิด: การ์ดใหญ่เต็มจอ */
+.games.one { grid-template-columns: 1fr; }
+.games.one .game { min-height: 230px; padding: 22px; }
+.games.one .g-ico { width: 84px; height: 84px; font-size: 3.2rem; border-radius: 22px; }
+.games.one .game b { font-size: 1.7rem; font-weight: 800; }
+.games.one .game small { font-size: .95rem; }
+.games.one .g-best { align-self: flex-start; margin-top: 14px; padding: 8px 22px; border-radius: 14px; background: #fff; color: var(--ink); font-size: 1.05rem; box-shadow: 0 4px 0 var(--edge); }
+.games.one .g-best .stars { color: #f0a800; }
+
+/* หน้ารอ */
+.waiting { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 48px 8px 16px; text-align: center; }
+.waiting h2 { font-size: 1.7rem; font-weight: 800; }
+.waiting p { opacity: .8; }
+.dots { display: flex; gap: 12px; margin-bottom: 12px; }
+.dots i { width: 22px; height: 22px; border-radius: 7px; background: var(--yellow); }
+.dots i:nth-child(2) { background: var(--pink); } .dots i:nth-child(3) { background: #36b5ff; }
+@media (prefers-reduced-motion: no-preference) {
+  .dots i { animation: hop 1.2s var(--spring) infinite; }
+  .dots i:nth-child(2) { animation-delay: .15s; } .dots i:nth-child(3) { animation-delay: .3s; }
+}
+@keyframes hop { 0%, 60%, 100% { translate: 0 0; rotate: 0deg; } 30% { translate: 0 -18px; rotate: 20deg; } }
+.crowd { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 18px; max-width: 360px; }
+
+/* การ์ดตัวตน */
+.idn { gap: 14px; }
+.pcard { position: sticky; top: max(8px, env(safe-area-inset-top)); z-index: 3; display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-radius: var(--r); background: var(--ink); border: 3px solid #fff; box-shadow: 0 6px 0 var(--edge); }
+.pcard > span:last-child { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; }
+.pcard b { font-size: 1.5rem; font-weight: 800; line-height: 1.2; }
+.pcard small { font-size: .9rem; color: var(--yellow); opacity: 1; font-weight: 500; }
+.emojis { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; max-height: 232px; overflow-y: auto; padding: 4px; border-radius: 14px; background: var(--soft); overscroll-behavior: contain; }
+.em { aspect-ratio: 1; min-height: 44px; border-radius: 12px; font-size: 1.6rem; background: #fff; border: 3px solid transparent; transition: scale .2s var(--spring); }
+.em[aria-checked=true] { border-color: var(--ink); background: var(--yellow); scale: 1.08; }
+.em:disabled { opacity: .22; filter: grayscale(1); background: none; }
+.swatches { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; }
+.swatches button { aspect-ratio: 1; min-width: 0; border-radius: 12px; background: var(--c); border: 3px solid transparent; box-shadow: 0 3px 0 var(--edge); transition: scale .2s var(--spring); }
+.swatches button[aria-checked=true] { border-color: var(--ink); scale: 1.15; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chips button, .chips.ro span { min-height: 44px; display: inline-flex; align-items: center; gap: 6px; padding: 4px 14px; border-radius: 12px; background: var(--soft); font-weight: 500; box-shadow: 0 3px 0 var(--line); }
+.chips button[aria-checked=true] { background: var(--ink); color: #fff; box-shadow: 0 3px 0 #000; }
+.chips.ro span { min-height: 36px; box-shadow: none; }
+.team small { font-size: .7rem; }
+.lbl small { font-weight: 400; margin-left: 6px; }
+
+/* ---------- ผู้สอน ---------- */
+.host-rooms { max-width: 560px; margin: 0 auto; }
+.room-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 12px 16px; border-radius: 16px; background: #fff; color: var(--ink); text-align: left; box-shadow: 0 5px 0 var(--edge); transition: translate .08s, box-shadow .08s; }
+.room-row:active { translate: 0 4px; box-shadow: 0 1px 0 var(--edge); }
+.room-row b { display: block; font-size: 1.1rem; }
+.room-row i { font-style: normal; font-weight: 800; letter-spacing: .1em; padding: 2px 10px; border-radius: 10px; background: var(--yellow); }
+.pcount { font-size: 1.05rem; } .pcount b { font-size: 1.6rem; font-weight: 800; }
+.card h2 small { display: block; font-weight: 400; margin-top: 2px; }
+.gtoggles { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+.gt { display: flex; align-items: center; gap: 10px; min-height: 64px; padding: 8px 12px; border-radius: 14px; text-align: left; background: var(--soft); color: var(--ink2); border: 3px solid transparent; box-shadow: 0 4px 0 var(--line); transition: translate .08s, background-color .15s; }
+.gt:active { translate: 0 3px; }
+.gt .g-ico { width: 40px; height: 40px; margin: 0; font-size: 1.4rem; border-radius: 12px; rotate: none; box-shadow: none; background: #c9c4e6; color: #fff; }
+.gt b { display: block; line-height: 1.2; } .gt small { font-size: .75rem; }
+.gt[aria-pressed=true] { background: var(--a); color: #fff; box-shadow: 0 4px 0 var(--edge); }
+.gt[aria-pressed=true] .g-ico { background: #fff; color: var(--a); }
+.gt[aria-pressed=true]::after { content: 'เปิดอยู่'; margin-left: auto; padding: 2px 8px; border-radius: 8px; background: #fff; color: var(--ink); font-size: .72rem; font-weight: 600; white-space: nowrap; }
+.now { font-size: .9rem; color: var(--ink2); }
+.now .btn { display: inline-flex; min-height: 44px; padding: 0 8px; }
+.switch { display: flex; align-items: center; gap: 14px; min-height: var(--tap); cursor: pointer; }
+.switch input { appearance: none; -webkit-appearance: none; flex: none; width: 56px; height: 32px; margin: 0; border-radius: 99px; background: var(--line); position: relative; transition: background-color .2s; cursor: pointer; }
+.switch input::after { content: ''; position: absolute; top: 4px; left: 4px; width: 24px; height: 24px; border-radius: 50%; background: #fff; transition: translate .25s var(--spring); }
+.switch input:checked { background: var(--green); }
+.switch input:checked::after { translate: 24px 0; }
+.switch small { display: block; }
+.kick { width: 44px; height: 44px; font-size: 1rem; color: var(--red); }
+@media (min-width: 900px) { body.wide .host-rooms { padding-top: 32px; } }

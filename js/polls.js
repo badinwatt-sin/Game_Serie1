@@ -47,16 +47,17 @@ function resultHTML(poll, votes, mine) {
 }
 
 // ---------- ฝั่งผู้เล่น ----------
-export function mountPlayerPolls(box) {
+export function mountPlayerPolls(box, onCount = () => {}) {
   const room = state.room.code;
   const mine = () => ((state.voted ||= {})[room] ||= {});
   let polls = [], votes = [], stop = false;
-  box.innerHTML = `<div class="pl"></div><p class="hint">กำลังโหลด…</p>`;
-  const list = $('.pl', box), hint = $('.hint', box);
+  box.innerHTML = `<div class="pl"></div>`;
+  const list = $('.pl', box);
 
   const draw = () => {
-    const my = mine(), show = polls.filter(p => p.open || my[p.id] !== undefined).reverse();
-    hint.textContent = show.length ? '' : 'ยังไม่มีคำถามเปิดอยู่ รอผู้จัดสักครู่ หน้านี้จะอัปเดตเอง';
+    // แสดงเฉพาะโพลที่ผู้สอนเปิดอยู่ (ที่ตอบแล้วจะเห็นผลรวม) — ปิดโพลเมื่อไร หายจากจอผู้เล่นทันที
+    const my = mine(), show = polls.filter(p => p.open).reverse();
+    onCount(show.length);
     patch(list, show.map(p => {
       const a = my[p.id];
       let inner;
@@ -64,7 +65,7 @@ export function mountPlayerPolls(box) {
       else if (p.type === 'choice') inner = `<div class="p-opts">${p.options.map((o, i) => `<button class="p-opt" data-id="${p.id}" data-v="${i}">${esc(o)}</button>`).join('')}</div>`;
       else if (p.type === 'rating') inner = `<div class="p-stars" role="group" aria-label="ให้คะแนน">${[1, 2, 3, 4, 5].map(k => `<button data-id="${p.id}" data-v="${k}" aria-label="${k} ดาว">${I.star}<span>${k}</span></button>`).join('')}</div>`;
       else inner = `<form class="p-text" data-id="${p.id}"><input class="inp" maxlength="40" placeholder="พิมพ์คำตอบสั้น ๆ" aria-label="คำตอบ" required><button class="btn primary sm">ส่ง</button></form>`;
-      return { id: p.id, html: `<article class="card poll"><h2>${esc(p.q)}</h2>${inner}</article>` };
+      return { id: p.id, html: `<article class="card poll"><small class="kicker">คำถามจากผู้สอน</small><h2>${esc(p.q)}</h2>${inner}</article>` };
     }));
   };
   const submit = async (id, answer) => {
@@ -85,7 +86,7 @@ export function mountPlayerPolls(box) {
   const load = async () => {
     const [p, v] = await Promise.all([sync.listPolls(room), sync.listVotes(room)]);
     if (stop) return;
-    if (!p.ok) { if (!polls.length) hint.textContent = 'เชื่อมต่อไม่ได้ กำลังลองใหม่…'; return; }
+    if (!p.ok) return;
     polls = p.data;
     if (v.ok) { const sent = new Set(v.data.map(x => x.poll_id + x.pid)); votes = [...v.data, ...votes.filter(x => x.pid === state.pid && !sent.has(x.poll_id + x.pid))]; }
     draw();
@@ -96,8 +97,7 @@ export function mountPlayerPolls(box) {
 }
 
 // ---------- ฝั่งผู้จัด ----------
-export function mountHostPolls(box) {
-  const room = state.host.code;
+export function mountHostPolls(box, room) {
   let polls = [], votes = [], stop = false, type = 'choice', first = true;
   box.innerHTML = `<details class="card pform" open><summary>ตั้งคำถามใหม่</summary>
     <form class="stack" id="pf">
@@ -143,7 +143,7 @@ export function mountHostPolls(box) {
     err.textContent = '';
     const r = await sync.savePoll({ id: crypto.randomUUID?.() || String(Date.now()), room, q, type, options, open: true });
     if (!r.ok) return err.textContent = r.status ? 'สร้างโพลไม่สำเร็จ รหัสผ่านผู้จัดอาจถูกเปลี่ยน ลองออกจากระบบแล้วเข้าใหม่' : 'สร้างโพลไม่สำเร็จ ตรวจสอบการเชื่อมต่อ';
-    e.target.reset(); setType('choice'); $('details', box).open = false; sfx.good(); toast('เปิดโพลแล้ว ผู้เล่นเห็นในแท็บ "โพล"'); load();
+    e.target.reset(); setType('choice'); $('details', box).open = false; sfx.good(); toast('เปิดโพลแล้ว ขึ้นบนจอผู้เล่นทันที'); load();
   };
   list.addEventListener('click', async e => {
     const b = e.target.closest('[data-act]'); if (!b) return;
