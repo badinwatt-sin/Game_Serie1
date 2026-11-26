@@ -127,3 +127,10 @@ Morning: three rings, daily trend, AI Coach focus. Plan my day: pick existing cu
 - Use the role names Agency Owner, MM1 / MM2, Unit Manager, Agent, in that order.
 - Keep versioned decisions; do not overwrite an agreed requirement without confirmation, and say which blueprint section a change touches.
 - The current prototype lives as a Claude Artifact named "GA Insurance"; earlier "GA on app" prototypes predate this blueprint.
+
+## Owner-requested additions beyond Blueprint v0.2
+
+These were added to the prototype on the owner's request (26 November 2026) and are not yet in the blueprint. Keep them, and flag them as additions until a blueprint version adopts them.
+
+- **Learning Roadmap and Passport** (More, and linked from the Growth ring): seven milestones by tenure (start, first 30 days, 90 days, 6 months, 12 months, 24 months, leader track), four stamps each: Learn, Practice, Apply, Result. A milestone passes only with all four. Result stamps come from company-verified data only and never change official qualification. Unit Managers verify Practice stamps; leaders see team distribution, items awaiting review and agents behind plan within their reporting line. Milestone content is sample content.
+- **Office Banner** on Home, placed under the Business Pulse so status still comes first: Event, Team Challenge, Promotion, Knowledge. The Team Challenge ranks units on activity versus plan, not sales, and shows only units inside the viewer's line. Prizes, contest rules and promotional material need company approval.
